@@ -1,4 +1,4 @@
-# HFT Risk Engine — Tier 2 (Real Sockets + Real FIX Parsing)
+# Order Risk Validation Engine
 
 This extends the Tier 1 engine (unchanged: `ThreadPool`, `TaskQueue`,
 `AccountStore`, `RiskValidator`) with:
