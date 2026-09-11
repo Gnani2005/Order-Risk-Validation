@@ -26,6 +26,12 @@ add_executable(hft_engine src/main.cpp)
 target_include_directories(hft_engine PRIVATE include)
 target_link_libraries(hft_engine PRIVATE Threads::Threads)
 
+# A/B baseline: same test driver, built with the original mutex+condvar queue.
+add_executable(hft_engine_mutex src/main.cpp)
+target_include_directories(hft_engine_mutex PRIVATE include)
+target_compile_definitions(hft_engine_mutex PRIVATE HFT_MUTEX_QUEUE)
+target_link_libraries(hft_engine_mutex PRIVATE Threads::Threads)
+
 # Tier 2: real TCP + FIX server, plus a matching test client.
 add_executable(hft_server src/server_main.cpp)
 target_include_directories(hft_server PRIVATE include)

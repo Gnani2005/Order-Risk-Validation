@@ -135,7 +135,7 @@ numbers reflect real scheduling + processing time instead.
 |---|---|---|
 | Producer | `OrderGenerator` (in-memory) | Real TCP socket listener |
 | Message format | `Order` struct | Real FIX tag=value parser → `Order` |
-| Queue | `TaskQueue` (mutex+condvar) | Lock-free MPMC (atomics/CAS) |
+| Queue | `TaskQueue` (mutex+condvar) | Lock-free MPMC (atomics/CAS) — ✅ done in Tier 3 |
 | Matching engine | none (validator only) | Real LOB, price-time priority |
 
 None of these require changing `ThreadPool.hpp` or `RiskValidator.hpp`'s
@@ -146,4 +146,6 @@ interface — that's the payload-agnostic guarantee the engine was built for.
 - SELL orders skip inventory/position checks (Tier 1 only checks BUY balance).
 - Symbol whitelist is a hardcoded 3-symbol set, not real reference data.
 - No persistence — account state is in-memory only, lost on restart.
-- Queue is mutex-based, not lock-free (documented as the Phase 8 stretch goal).
+- ~~Queue is mutex-based, not lock-free~~ — **done in Tier 3**: the default build
+  uses a lock-free ring (`include/LockFreeTaskQueue.hpp`); the original `TaskQueue`
+  is kept as an A/B baseline (`hft_engine_mutex`). See `HANDBOOK.md` §19.

@@ -1,19 +1,29 @@
 #pragma once
+// Which job queue the pool uses. Default: the lock-free ring.
+// Build with -DHFT_MUTEX_QUEUE to get the original mutex+condvar TaskQueue
+// (the hft_engine_mutex target does this, for A/B benchmarking).
+#ifdef HFT_MUTEX_QUEUE
 #include "TaskQueue.hpp"
+template <typename T> using JobQueue = TaskQueue<T>;
+#else
+#include "LockFreeTaskQueue.hpp"
+template <typename T> using JobQueue = LockFreeTaskQueue<T>;
+#endif
 #include <thread>
 #include <vector>
-#include <functional>
+#include "InlineJob.hpp"
 #include <atomic>
 #include <iostream>
 #include <future>
 
-// Payload-agnostic thread pool. Jobs are type-erased std::function<void()>.
+// Payload-agnostic thread pool. Jobs are type-erased InlineJob callables
+// (like std::function<void()>, but stored inline -- no heap allocation).
 // submit() never blocks waiting for execution -- it only blocks if the
 // internal queue is momentarily full (backpressure), never on job completion.
 class ThreadPool {
 public:
     explicit ThreadPool(size_t numThreads = std::thread::hardware_concurrency(),
-                        size_t queueCapacity = 1'000'000)
+                        size_t queueCapacity = 1 << 16)
         : queue_(queueCapacity) {
         if (numThreads == 0) numThreads = 1;
         workers_.reserve(numThreads);
@@ -32,7 +42,7 @@ public:
 
     template <typename F>
     bool submit(F&& job) {
-        return queue_.push(std::function<void()>(std::forward<F>(job)));
+        return queue_.push(InlineJob(std::forward<F>(job)));
     }
 
     // Submit and get a future for the result -- handy for tests/benchmarks
@@ -68,7 +78,7 @@ public:
 private:
     void workerLoop() {
         while (true) {
-            std::optional<std::function<void()>> job = queue_.pop();
+            std::optional<InlineJob> job = queue_.pop();
             if (!job.has_value()) break; // shutdown + drained
             try {
                 (*job)();
@@ -81,7 +91,7 @@ private:
         }
     }
 
-    TaskQueue<std::function<void()>> queue_;
+    JobQueue<InlineJob> queue_;
     std::vector<std::thread> workers_;
     std::atomic<bool> shuttingDown_{false};
     std::atomic<size_t> completed_{0};
