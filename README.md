@@ -1,4 +1,4 @@
-# HFT-Style Risk Validation Engine (Tier 1)
+Order Risk Validation Engine
 
 A payload-agnostic parallel task execution engine (producer-consumer thread
 pool) with a cryptocurrency order risk-validation payload plugged in.
